@@ -55,7 +55,10 @@ public class PalindromeService {
     }
 
     private int getPalindromeSubString(String content, int start, int end) {
-        while (start >= 0 && end < content.length() && (content.charAt(start) == content.charAt(end))) {
+        while (start >= 0 && end < content.length()
+                && (Character.isAlphabetic(content.charAt(start)) && (Character.isAlphabetic(content.charAt(end))))
+                && (content.charAt(start) == content.charAt(end))
+        ) {
             start--;
             end++;
         }
