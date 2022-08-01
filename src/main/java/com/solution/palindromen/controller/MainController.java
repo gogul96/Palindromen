@@ -1,18 +1,16 @@
 package com.solution.palindromen.controller;
 
 import com.solution.palindromen.service.PalindromeService;
-import com.solution.palindromen.service.ReversalService;
 import com.solution.palindromen.utils.PalindromeInput;
-import com.solution.palindromen.utils.PalindromeOutput;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.http.ResponseEntity;
-import com.solution.palindromen.utils.ReversalInput;
 
 import java.util.List;
 
@@ -21,29 +19,16 @@ import java.util.List;
 public class MainController {
 
     @Autowired
-    private ReversalService reversalService;
-    @Autowired
     private PalindromeService palindromeService;
-
-    @RequestMapping("/reverse")
-    public ResponseEntity<String> doReversal(@RequestBody ReversalInput reversalInput) {
-        return ResponseEntity.ok(reversalService.doStringReverse(reversalInput));
-    }
-
-    @PostMapping("/addLongestPalindrome")
-    public ResponseEntity<PalindromeOutput> getLongestPalindrome(@RequestBody PalindromeInput palindromeInput) {
-        try {
-            return ResponseEntity.ok(palindromeService.getLongestPalindrome(palindromeInput));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
 
     @PostMapping("/pushLongestPalindrome")
     public ResponseEntity pushLongestPalindrome(@RequestBody PalindromeInput palindromeInput) {
         try {
-            palindromeService.findAndPushLongestPalindrome(palindromeInput);
-            return ResponseEntity.accepted().build();
+            if (palindromeService.findAndPushLongestPalindrome(palindromeInput)) {
+                return ResponseEntity.accepted().build();
+            } else {
+                return ResponseEntity.badRequest().body("Invalid Content "+ palindromeInput.getContent());
+            }
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
@@ -55,6 +40,16 @@ public class MainController {
             return ResponseEntity.ok(palindromeService.getStoredPalindromes());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @MessageMapping("/palindrome")
+    @SendTo("/topic/messages")
+    public String send(final PalindromeInput palindromeInput) throws Exception {
+        try {
+            return palindromeService.findAndStoreLongestPalindrome(palindromeInput).toString();
+        } catch (Exception e) {
+            throw new Exception("Internal Server Error");
         }
     }
 }

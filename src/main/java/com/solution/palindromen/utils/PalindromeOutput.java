@@ -37,7 +37,7 @@ public class PalindromeOutput {
 
     @Override
     public String toString() {
-        return "{ \"content\": " + this.content +", \"timestamp\": " + this.timestamp
-                + ", \"longest_timestamp_size\": "+this.longest_timestamp_size + " }";
+        return "{ \"content\": \"" + this.content +"\", \"timestamp\": \"" + this.timestamp
+                + "\", \"longest_timestamp_size\": "+this.longest_timestamp_size + " }";
     }
 }

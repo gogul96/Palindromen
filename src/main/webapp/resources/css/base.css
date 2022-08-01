@@ -1,0 +1,12 @@
+body {
+    background-color: #c7ecc7;
+}
+
+.webkit-fill-available {
+    width: -webkit-fill-available
+}
+
+.align-right {
+    margin-left: auto;
+    margin-right: 0;
+}

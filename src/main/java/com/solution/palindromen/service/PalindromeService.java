@@ -6,6 +6,7 @@ import com.solution.palindromen.utils.PalindromeOutput;
 import com.solution.palindromen.repository.PalindromeMessage;
 import com.solution.palindromen.repository.PalindromeMessageRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,10 +23,13 @@ public class PalindromeService {
     @Autowired
     private RedisMessagePublisher publisher;
 
+    @Autowired
+    private SimpMessagingTemplate template;
+
     public PalindromeOutput getLongestPalindrome(PalindromeInput palindromeInput) throws Exception {
         try {
             PalindromeOutput palindromeOutput = new PalindromeOutput(palindromeInput.getContent(), palindromeInput.getTimestamp());
-            palindromeOutput.setLongest_timestamp_size(getLongestPalindromeLength(palindromeInput.getContent()));
+            palindromeOutput.setLongest_timestamp_size(getLongestPalindromeLength(palindromeInput.getContent().toLowerCase()));
             return palindromeOutput;
         } catch (Exception e) {
             throw new Exception("Invalid Input");
@@ -63,13 +67,52 @@ public class PalindromeService {
                 .stream().map(PalindromeMessage::getMessage).collect(Collectors.toList());
     }
 
-    public void findAndPushLongestPalindrome(PalindromeInput palindromeInput) throws Exception {
+    public boolean findAndPushLongestPalindrome(PalindromeInput palindromeInput) throws Exception {
         try {
+            if (!validateInputString(palindromeInput.getContent())) {
+                return false;
+            }
             PalindromeOutput palindromeOutput = getLongestPalindrome(palindromeInput);
             publisher.publish(palindromeOutput.toString());
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new Exception(e.getMessage());
+        }
+        return true;
+    }
+
+    public PalindromeOutput findAndStoreLongestPalindrome(PalindromeInput palindromeInput) throws Exception{
+        try {
+            if (!validateInputString(palindromeInput.getContent())) {
+                throw new Exception("Invalid Input");
+            }
+            PalindromeOutput palindromeOutput = getLongestPalindrome(palindromeInput);
+            addMessageToRepository(palindromeOutput.toString());
+            return palindromeOutput;
+        } catch (Exception e) {
             throw new Exception(e.getMessage());
         }
     }
+
+    public void addMessageToRepository(String message) {
+        try {
+            String messageId = UUID.randomUUID().toString();
+            PalindromeMessage palindromeMessage = new PalindromeMessage();
+            palindromeMessage.setMessageId(messageId);
+            palindromeMessage.setMessage(message);
+            palindromeMessage.setTimestamp(LocalDateTime.now());
+            palindromeMessageRepo.saveAndFlush(palindromeMessage);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("Failed to Save message to repository");
+        }
+    }
+
+    public boolean validateInputString(String content) {
+        return content != null && content.matches(".*[a-zA-Z]+.*");
+    }
+
+    public void sendMessageToWebSocketClient(String message) {
+        template.convertAndSend("/topic/messages", message);
+    }
+
 }
